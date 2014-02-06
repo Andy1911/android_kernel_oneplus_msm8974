@@ -471,6 +471,10 @@ static void get_krait_bin_format_b(struct platform_device *pdev,
 		*speed = 0;
 	}
 
+#ifdef CONFIG_PVS_LEVEL_INTERFACE
+        speed_level = *speed;
+#endif
+
 	/* Check PVS_BLOW_STATUS */
 	pte_efuse = readl_relaxed(base + 0x4) & BIT(21);
 	if (pte_efuse) {
@@ -558,10 +562,6 @@ static int clk_init_vdd_class(struct device *dev, struct clk *clk, int num,
 
 	return 0;
 }
-
-#ifdef CONFIG_PVS_LEVEL_INTERFACE
-	speed_level = *speed;
-#endif
 
 static int hfpll_base_init(struct platform_device *pdev, struct hfpll_clk *h)
 {
