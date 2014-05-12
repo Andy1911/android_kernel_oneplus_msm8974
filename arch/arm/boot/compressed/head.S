@@ -10,8 +10,6 @@
  */
 #include <linux/linkage.h>
 
-<<<<<<< HEAD
-=======
 	.arch	armv7-a
 
 #ifdef CONFIG_KEXEC_HARDBOOT
@@ -19,7 +17,6 @@
   #include <asm/memory.h>
 #endif
 
->>>>>>> 091b067... Implement kexec-hardboot
 /*
  * Debugging stuff
  *

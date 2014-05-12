@@ -52,16 +52,6 @@
 #include "platsmp.h"
 
 
-<<<<<<< HEAD
-static struct memtype_reserve msm8974_reserve_table[] __initdata = {
-	[MEMTYPE_SMI] = {
-	},
-	[MEMTYPE_EBI0] = {
-		.flags	=	MEMTYPE_FLAGS_1M_ALIGN,
-	},
-	[MEMTYPE_EBI1] = {
-		.flags	=	MEMTYPE_FLAGS_1M_ALIGN,
-=======
 #include <linux/pcb_version.h>
 
 #ifdef CONFIG_KEXEC_HARDBOOT
@@ -77,7 +67,6 @@ static struct persistent_ram_descriptor msm_prd[] __initdata = {
 	{
 		.name = "ram_console",
 		.size = SZ_1M,
->>>>>>> 091b067... Implement kexec-hardboot
 	},
 };
 
@@ -93,17 +82,6 @@ static struct reserve_info msm8974_reserve_info __initdata = {
 
 void __init msm_8974_reserve(void)
 {
-<<<<<<< HEAD
-	reserve_info = &msm8974_reserve_info;
-	of_scan_flat_dt(dt_scan_for_memory_reserve, msm8974_reserve_table);
-	msm_reserve();
-}
-
-static void __init msm8974_early_memory(void)
-{
-	reserve_info = &msm8974_reserve_info;
-	of_scan_flat_dt(dt_scan_for_memory_hole, msm8974_reserve_table);
-=======
 #ifdef CONFIG_KEXEC_HARDBOOT
 	// Reserve space for hardboot page, just before the ram_console
 	struct membank* bank = &meminfo.bank[0];
@@ -116,7 +94,6 @@ static void __init msm8974_early_memory(void)
 #endif
 	persistent_ram_early_init(&msm_pr);
 	of_scan_flat_dt(dt_scan_for_memory_reserve, NULL);
->>>>>>> 091b067... Implement kexec-hardboot
 }
 
 /*
