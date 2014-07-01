@@ -8,6 +8,17 @@ obj-$(CONFIG_THERMAL_TSENS)	+= msm_tsens.o
 obj-$(CONFIG_THERMAL_TSENS8960) += msm8960_tsens.o
 obj-$(CONFIG_THERMAL_PM8XXX)	+= pm8xxx-tm.o
 obj-$(CONFIG_THERMAL_MONITOR)	+= msm_thermal.o msm_thermal-dev.o
+<<<<<<< HEAD
+=======
+
+ifdef CONFIG_INTELLI_THERMAL
+obj-$(CONFIG_INTELLI_THERMAL)	+= intelli/msm_thermal.o
+else
+obj-$(CONFIG_THERMAL_MONITOR)	+= msm_thermal.o
+endif
+
+obj-$(CONFIG_THERMAL_MONITOR)	+= msm_thermal.o
+>>>>>>> c5c500d... sound: add sound control to increase headphones, speaker and mic gain.
 obj-$(CONFIG_SPEAR_THERMAL)		+= spear_thermal.o
 obj-$(CONFIG_THERMAL_TSENS8974)	+= msm8974-tsens.o
 obj-$(CONFIG_THERMAL_QPNP)	+= qpnp-temp-alarm.o

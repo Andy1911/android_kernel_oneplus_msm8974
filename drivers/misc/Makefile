@@ -70,6 +70,16 @@ obj-$(CONFIG_QSEECOM) += qseecom.o
 obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
 obj-$(CONFIG_TI_DRV2667) += ti_drv2667.o
 obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
+<<<<<<< HEAD
 obj-$(CONFIG_UID_CPUTIME) 	+= uid_cputime.o
 
 obj-$(CONFIG_SN3193_SLED)  += shineled/
+=======
+obj-$(CONFIG_SN3193_SLED) += shineled/
+<<<<<<< HEAD
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o
+=======
+
+obj-y				+= sound_control.o
+>>>>>>> 5b316da... sound: add sound control to increase headphones, speaker and mic gain.
+>>>>>>> c5c500d... sound: add sound control to increase headphones, speaker and mic gain.
