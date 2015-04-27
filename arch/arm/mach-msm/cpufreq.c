@@ -425,11 +425,7 @@ static struct cpufreq_driver msm_cpufreq_driver = {
 #define PROP_TBL "qcom,cpufreq-table"
 static int cpufreq_parse_dt(struct device *dev)
 {
-<<<<<<< HEAD
-	int ret, len, nf, num_cols = 2, i, j;
-=======
 	int ret, nf, i, j;
->>>>>>> a97eca4... Voltage Control: generic voltage control for DTS based kernels
 	u32 *data;
 
 	if (l2_clk)
@@ -561,14 +557,6 @@ static int msm_cpufreq_open(struct inode *inode, struct file *file)
 	return single_open(file, msm_cpufreq_show, inode->i_private);
 }
 
-<<<<<<< HEAD
-const struct file_operations msm_cpufreq_fops = {
-	.open		= msm_cpufreq_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= seq_release,
-};
-=======
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 bool is_used_by_scaling(unsigned int freq)
 {
@@ -583,7 +571,6 @@ bool is_used_by_scaling(unsigned int freq)
 	}
 	return false;
 }
->>>>>>> a97eca4... Voltage Control: generic voltage control for DTS based kernels
 #endif
 
 static int __init msm_cpufreq_probe(struct platform_device *pdev)
