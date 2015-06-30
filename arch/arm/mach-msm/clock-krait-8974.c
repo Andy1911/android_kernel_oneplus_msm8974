@@ -590,8 +590,37 @@ module_param_string(table_name, table_name, sizeof(table_name), S_IRUGO);
 static unsigned int pvs_config_ver;
 module_param(pvs_config_ver, uint, S_IRUGO);
 
+<<<<<<< HEAD
 #ifdef CONFIG_MACH_MSM8974_14001
 static unsigned int no_cpu_underclock;
+=======
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+#define CPU_VDD_MIN	475
+#define CPU_VDD_MAX	1450
+
+extern bool is_used_by_scaling(unsigned int freq);
+
+static unsigned int cnt;
+
+ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
+{
+	int i, freq, len = 0;
+	/* use only master core 0 */
+	int num_levels = cpu_clk[0]->vdd_class->num_levels;
+
+	/* sanity checks */
+	if (num_levels < 0)
+		return -EINVAL;
+
+	if (!buf)
+		return -EINVAL;
+
+	/* format UV_mv table */
+	for (i = 0; i < num_levels; i++) {
+		/* show only those used in scaling */
+		if (!is_used_by_scaling(freq = cpu_clk[0]->fmax[i] / 1000))
+			continue;
+>>>>>>> 2ff7573... msm8974pro: regulator: set retention and ldo voltages to the minimum values supported
 
 static int __init get_cpu_underclock(char *cpu_uc)
 {
