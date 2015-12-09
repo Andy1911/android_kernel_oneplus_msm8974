@@ -600,10 +600,7 @@ module_param(pvs_config_ver, uint, S_IRUGO);
 
 extern bool is_used_by_scaling(unsigned int freq);
 
-<<<<<<< HEAD
-=======
 static unsigned int cnt;
->>>>>>> 88b5c43... Voltage Control: Fix voltage setting bug
 
 ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
 {
