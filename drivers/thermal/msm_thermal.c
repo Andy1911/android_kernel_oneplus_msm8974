@@ -2210,11 +2210,6 @@ done_cc_nodes:
 	return ret;
 }
 
-<<<<<<< HEAD
-static __init int msm_thermal_add_timer_nodes(void)
-{
-	struct kobject *module_kobj = NULL;
-=======
 static ssize_t show_thermal_stats(struct kobject *kobj,
                 struct kobj_attribute *attr, char *buf)
 {
@@ -2260,7 +2255,6 @@ static __init int msm_thermal_add_stat_nodes(void)
 {
 	struct kobject *module_kobj = NULL;
 	struct kobject *stat_kobj = NULL;
->>>>>>> cc427cf... msm: thermal: merged intelli thermal v2.0
 	int ret = 0;
 
 	module_kobj = kset_find_obj(module_kset, KBUILD_MODNAME);
@@ -2268,23 +2262,6 @@ static __init int msm_thermal_add_stat_nodes(void)
 		pr_err("%s: cannot find kobject for module\n",
 			KBUILD_MODNAME);
 		ret = -ENOENT;
-<<<<<<< HEAD
-		goto failed;
-	}
-
-	tt_kobj = kobject_create_and_add("thermal_timer", module_kobj);
-	if (!tt_kobj) {
-		pr_err("%s: cannot create timer kobj\n",
-				KBUILD_MODNAME);
-		ret = -ENOMEM;
-		goto failed;
-	}
-
-	ret = sysfs_create_group(tt_kobj, &tt_attr_group);
-	if (ret) {
-		pr_err("%s: cannot create group\n", KBUILD_MODNAME);
-		goto failed;
-=======
 		goto done_stat_nodes;
 	}
 
@@ -2300,20 +2277,13 @@ static __init int msm_thermal_add_stat_nodes(void)
 	if (ret) {
 		pr_err("%s: cannot create group\n", KBUILD_MODNAME);
 		goto done_stat_nodes;
->>>>>>> cc427cf... msm: thermal: merged intelli thermal v2.0
 	}
 
 	return 0;
 
-<<<<<<< HEAD
-failed:
-	if (tt_kobj)
-		kobject_del(tt_kobj);
-=======
 done_stat_nodes:
 	if (stat_kobj)
 		kobject_del(stat_kobj);
->>>>>>> cc427cf... msm: thermal: merged intelli thermal v2.0
 	return ret;
 }
 
