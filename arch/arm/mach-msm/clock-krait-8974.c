@@ -22,6 +22,10 @@
 #include <linux/of.h>
 #include <linux/cpumask.h>
 
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+#include <linux/cpufreq.h>
+#endif
+
 #include <asm/cputype.h>
 
 #include <mach/rpm-regulator-smd.h>
@@ -403,6 +407,7 @@ static struct clk_lookup kpss_clocks_8974[] = {
 	CLK_LOOKUP("",	krait2_pri_mux_clk.c,		""),
 	CLK_LOOKUP("",	krait3_pri_mux_clk.c,		""),
 	CLK_LOOKUP("",	l2_pri_mux_clk.c,		""),
+	CLK_LOOKUP("l2_clk",	l2_clk.c,	  "0.qcom,cache"),
 	CLK_LOOKUP("l2_clk",	l2_clk.c,     "0.qcom,msm-cpufreq"),
 	CLK_LOOKUP("cpu0_clk",	krait0_clk.c, "0.qcom,msm-cpufreq"),
 	CLK_LOOKUP("cpu1_clk",	krait1_clk.c, "0.qcom,msm-cpufreq"),
@@ -423,15 +428,17 @@ static struct clk *cpu_clk[] = {
 };
 
 static void get_krait_bin_format_b(struct platform_device *pdev,
-					int *speed, int *pvs, int *pvs_ver)
+			int *speed, int *pvs, int *svs_pvs, int *pvs_ver)
 {
 	u32 pte_efuse, redundant_sel;
 	struct resource *res;
 	void __iomem *base;
+	void __iomem *base_svs;
 
 	*speed = 0;
 	*pvs = 0;
 	*pvs_ver = 0;
+	*svs_pvs = -1;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "efuse");
 	if (!res) {
@@ -502,9 +509,13 @@ static void get_krait_bin_format_b(struct platform_device *pdev,
 	pte_efuse = readl_relaxed(base + 0x4) & BIT(21);
 	if (pte_efuse) {
 		dev_info(&pdev->dev, "PVS bin: %d\n", *pvs);
+		if (*svs_pvs >= 0)
+			dev_info(&pdev->dev, "SVS PVS bin: %d\n", *svs_pvs);
+
 	} else {
 		dev_warn(&pdev->dev, "PVS bin not set. Defaulting to 0!\n");
 		*pvs = 0;
+		*svs_pvs = -1;
 	}
 
 #ifdef CONFIG_PVS_LEVEL_INTERFACE
@@ -630,27 +641,94 @@ module_param_string(table_name, table_name, sizeof(table_name), S_IRUGO);
 static unsigned int pvs_config_ver;
 module_param(pvs_config_ver, uint, S_IRUGO);
 
-#ifdef CONFIG_MACH_MSM8974_14001
-static unsigned int no_cpu_underclock;
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
 
-static int __init get_cpu_underclock(char *cpu_uc)
+#define CPU_VDD_MIN	 600
+#define CPU_VDD_MAX	1450
+
+extern bool is_used_by_scaling(unsigned int freq);
+
+static unsigned int cnt;
+
+ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
 {
-	if (!strncmp(cpu_uc, "1", 1))
-		no_cpu_underclock = 1;
+	int i, freq, len = 0;
+	/* use only master core 0 */
+	int num_levels = cpu_clk[0]->vdd_class->num_levels;
 
-	return 0;
+	/* sanity checks */
+	if (num_levels < 0)
+		return -EINVAL;
+
+	if (!buf)
+		return -EINVAL;
+
+	/* format UV_mv table */
+	for (i = 0; i < num_levels; i++) {
+		/* show only those used in scaling */
+		if (!is_used_by_scaling(freq = cpu_clk[0]->fmax[i] / 1000))
+			continue;
+
+		len += sprintf(buf + len, "%dmhz: %u mV\n", freq / 1000,
+			       cpu_clk[0]->vdd_class->vdd_uv[i] / 1000);
+	}
+	return len;
 }
-__setup("no_underclock=", get_cpu_underclock);
+
+ssize_t store_UV_mV_table(struct cpufreq_policy *policy, char *buf,
+				size_t count)
+{
+	int i, j;
+	int ret = 0;
+	unsigned int val;
+	char size_cur[8];
+	/* use only master core 0 */
+	int num_levels = cpu_clk[0]->vdd_class->num_levels;
+
+	if (cnt) {
+		cnt = 0;
+		return -EINVAL;
+	}
+
+	/* sanity checks */
+	if (num_levels < 0)
+		return -1;
+
+	for (i = 0; i < num_levels; i++) {
+		if (!is_used_by_scaling(cpu_clk[0]->fmax[i] / 1000))
+			continue;
+
+		ret = sscanf(buf, "%u", &val);
+		if (!ret)
+			return -EINVAL;
+
+		/* bounds check */
+		val = min( max((unsigned int)val, (unsigned int)CPU_VDD_MIN),
+			(unsigned int)CPU_VDD_MAX);
+
+		/* apply it to all available cores */
+		for (j = 0; j < NR_CPUS; j++)
+			cpu_clk[j]->vdd_class->vdd_uv[i] = val * 1000;
+
+		/* Non-standard sysfs interface: advance buf */
+		ret = sscanf(buf, "%s", size_cur);
+		cnt = strlen(size_cur);
+		buf += cnt + 1;
+	}
+	pr_warn("faux123: user voltage table modified!\n");
+
+	return ret;
+}
 #endif
 
 static int clock_krait_8974_driver_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct clk *c;
-	int speed, pvs, pvs_ver, config_ver, rows, cpu;
-	unsigned long *freq, cur_rate, aux_rate;
-	int *uv, *ua;
-	u32 *dscr, vco_mask, config_val;
+	int speed, pvs, svs_pvs, pvs_ver, config_ver, rows, cpu, svs_row = 0;
+	unsigned long *freq = 0, *svs_freq = 0, cur_rate, aux_rate;
+	int *uv = 0, *ua = 0, *svs_uv = 0, *svs_ua = 0;
+	u32 *dscr = 0, vco_mask, config_val, svs_fmax;
 	int ret;
 
 	vdd_l2.regulator[0] = devm_regulator_get(dev, "l2-dig");
@@ -737,7 +815,7 @@ static int clock_krait_8974_driver_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "PVS config version: %d\n", config_ver);
 	}
 
-	get_krait_bin_format_b(pdev, &speed, &pvs, &pvs_ver);
+	get_krait_bin_format_b(pdev, &speed, &pvs, &svs_pvs, &pvs_ver);
 	snprintf(table_name, ARRAY_SIZE(table_name),
 			"qcom,speed%d-pvs%d-bin-v%d", speed, pvs, pvs_ver);
 
@@ -756,17 +834,67 @@ static int clock_krait_8974_driver_probe(struct platform_device *pdev)
 			pvs = 0;
 			rows = ret;
 		}
-	}
+	} else if (svs_pvs >= 0) {
+		/* Find the split freq for svs fmax */
+		ret = of_property_read_u32(dev->of_node, "qcom,svs-fmax",
+		     &svs_fmax);
+		if (ret) {
+			dev_err(dev, "Unable to find krait fmax for svs\n");
+			return ret;
+		}
 
-#ifdef CONFIG_MACH_MSM8974_14001
-	/* Underclock to 1958MHz for better UX */
-	if (!no_cpu_underclock) {
-		while (rows--) {
-			if (freq[rows - 1] == 1958400000)
-				break;
+		/* Find the svs fmax freq row */
+		while ((svs_row < rows) && (freq[svs_row] != svs_fmax))
+			svs_row++;
+
+		if (svs_row == rows) {
+			dev_err(dev, "Invalid krait fmax for svs\n");
+			return -EINVAL;
+		}
+
+		snprintf(table_name, ARRAY_SIZE(table_name),
+			"qcom,speed%d-pvs%d-bin-v%d", speed, svs_pvs, pvs_ver);
+
+		rows = parse_tbl(dev, table_name, 3,
+			(u32 **) &svs_freq, (u32 **) &svs_uv, (u32 **) &svs_ua);
+		if (rows > 0) {
+			/* Use the svs voltage data for svs freqs */
+			while (svs_row >= 0) {
+				uv[svs_row] = svs_uv[svs_row];
+				svs_row--;
+			}
+
+			devm_kfree(dev, svs_freq);
+			devm_kfree(dev, svs_uv);
+			devm_kfree(dev, svs_ua);
+		} else {
+			/* Fall back to most conservative svs pvs table */
+			dev_err(dev, "Unable to load svs voltage plan %s!\n",
+				table_name);
+
+			snprintf(table_name, ARRAY_SIZE(table_name),
+			"qcom,speed0-pvs0-bin-v%d", pvs_ver);
+
+			rows = parse_tbl(dev, table_name, 3,
+				(u32 **) &svs_freq, (u32 **) &svs_uv,
+				(u32 **) &svs_ua);
+			if (rows < 0) {
+				dev_err(dev, "Unable to load safe voltage plan.\n");
+				return rows;
+			} else {
+				dev_info(dev, "Safe svs voltage plan loaded.\n");
+
+				while (svs_row >= 0) {
+					uv[svs_row] = svs_uv[svs_row];
+					svs_row--;
+				}
+
+				devm_kfree(dev, svs_freq);
+				devm_kfree(dev, svs_uv);
+				devm_kfree(dev, svs_ua);
+			}
 		}
 	}
-#endif
 
 	krait_update_uv(uv, rows, pvs ? 25000 : 0);
 
