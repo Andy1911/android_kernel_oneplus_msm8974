@@ -3038,6 +3038,12 @@ config PVS_LEVEL_INTERFACE
 	help
 	 Allow PVS level to be shown in Boeffla-Config app
 
+config SPEED_LEVEL_INTERFACE
+	bool "Expose SPEED level information in sys fs"
+	help
+	 Allow SPEED level to be shown into specific kernel apps
+
+
 endif
 
 config KERNEL_TEXT_MPU_PROT
@@ -3047,3 +3053,5 @@ config KERNEL_TEXT_MPU_PROT
           sections early in boot. Read access is permitted to
           all masters; Write access is only permited to the
           secure world.
+
+
