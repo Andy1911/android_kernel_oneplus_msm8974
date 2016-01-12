@@ -64,7 +64,6 @@ static bool input_boost_enabled;
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
 
-<<<<<<< HEAD
 static unsigned int migration_load_threshold = 15;
 module_param(migration_load_threshold, uint, 0644);
 
@@ -72,7 +71,6 @@ static bool load_based_syncs;
 module_param(load_based_syncs, bool, 0644);
 
 static struct delayed_work input_boost_rem;
-=======
 static bool hotplug_boost = 1;
 module_param(hotplug_boost, bool, 0644);
 
@@ -80,7 +78,6 @@ module_param(hotplug_boost, bool, 0644);
 static bool wakeup_boost;
 module_param(wakeup_boost, bool, 0644);
 #endif
->>>>>>> 0afd3b2... cpufreq: cpu-boost: Add unified hotplug and wake boost
 
 static u64 last_input_time;
 #define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
@@ -217,7 +214,6 @@ static void update_policy_online(void)
 {
 	unsigned int i;
 
-<<<<<<< HEAD
 	/* Re-evaluate policy to trigger adjust notifier for online CPUs */
 	get_online_cpus();
 	for_each_online_cpu(i) {
@@ -225,17 +221,14 @@ static void update_policy_online(void)
 		cpufreq_update_policy(i);
 	}
 	put_online_cpus();
-=======
 	pr_debug("Removing input/hotplug boost for CPU%d\n", s->cpu);
 	s->input_boost_min = 0;
 	/* Force policy re-evaluation to trigger adjust notifier. */
 	cpufreq_update_policy(s->cpu);
->>>>>>> 0afd3b2... cpufreq: cpu-boost: Add unified hotplug and wake boost
 }
 
 static void do_input_boost_rem(struct work_struct *work)
 {
-<<<<<<< HEAD
 	unsigned int i;
 	struct cpu_sync *i_sync_info;
 
@@ -248,10 +241,8 @@ static void do_input_boost_rem(struct work_struct *work)
 
 	/* Update policies for all online CPUs */
 	update_policy_online();
-=======
 	struct cpu_sync *s = &per_cpu(sync_info, cpu);
 	return s->pending;
->>>>>>> 0afd3b2... cpufreq: cpu-boost: Add unified hotplug and wake boost
 }
 
 static int boost_mig_sync_thread(void *data)
@@ -397,11 +388,8 @@ static void cpuboost_input_event(struct input_handle *handle,
 {
 	u64 now;
 
-<<<<<<< HEAD
 	if (!input_boost_enabled)
-=======
 	if (!input_boost_freq || work_pending(&input_boost_work))
->>>>>>> 0afd3b2... cpufreq: cpu-boost: Add unified hotplug and wake boost
 		return;
 
 	now = ktime_to_us(ktime_get());
@@ -556,9 +544,7 @@ static int cpu_boost_init(void)
 					&boost_migration_nb);
 	ret = input_register_handler(&cpuboost_input_handler);
 
-<<<<<<< HEAD
 	return 0;
-=======
 	ret = register_hotcpu_notifier(&cpu_nblk);
 	if (ret)
 		pr_err("Cannot register cpuboost hotplug handler.\n");
@@ -571,6 +557,5 @@ static int cpu_boost_init(void)
 #endif
 
 	return ret;
->>>>>>> 0afd3b2... cpufreq: cpu-boost: Add unified hotplug and wake boost
 }
 late_initcall(cpu_boost_init);
